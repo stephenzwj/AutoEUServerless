@@ -20,7 +20,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install requests beautifulsoup4 pandas
+        pip install requests beautifulsoup4 openpyxl pandas
 
     - name: Run script
       env:
