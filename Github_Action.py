@@ -181,10 +181,22 @@ def get_captcha_solver_usage() -> dict:
 # 从 Mailparser 获取 PIN
 def get_pin_from_mailparser(url_id: str) -> str:
     # 从 Mailparser 获取 PIN# 
-    response = requests.get(
-        f"{MAILPARSER_DOWNLOAD_BASE_URL}{url_id}",
-    )
-    pin = response.json()[0]["pin"]
+    url = f"{MAILPARSER_DOWNLOAD_BASE_URL}{url_id}"
+    response = requests.get(url, allow_redirects=True)
+    
+    # Check if the response status code is 200 (successful)
+    if response.status_code == 200:
+        with open('./filename.xlsx', 'wb') as output:
+            output.write(response.content)
+        print("File downloaded successfully!")
+    else:
+        print(f"Error: Received status code {response.status_code}")
+    import pandas as pd
+
+    # Read the Excel file into a DataFrame
+    df = pd.read_excel('./filename.xlsx')
+    pin = df['pin'].iloc[0].strip()
+
     return pin
 
 # 登录函数
