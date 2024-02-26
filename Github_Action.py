@@ -195,7 +195,7 @@ def get_pin_from_mailparser(url_id: str) -> str:
 
     # Read the Excel file into a DataFrame
     df = pd.read_excel('./filename.xlsx')
-    pin = df['pin'].iloc[0].strip()
+    pin = df['pin'].iloc[0]
 
     return pin
 
