@@ -2,33 +2,53 @@ name: Auto EUserv
 
 on:
   schedule:
-    - cron: '0 12 * * SUN'  # 每周日 UTC 时间 12:00 运行
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
   workflow_dispatch:
 
 jobs:
-  run-script:
+  check-week:
     runs-on: ubuntu-latest
-
+    outputs:
+      last_week: ${{ steps.check_last_week.outputs.last_week }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Check if it is the last week of the month
+        id: check_last_week
+        run: |
+          DAY=$(date +'%d')
+          LAST_DAY=$(date -d "$(date +'%Y-%m-01') +1 month -1 day" +'%d')
+          START_LAST_WEEK=$((LAST_DAY - 6))
+          if [ "$DAY" -ge "$START_LAST_WEEK" ]; then
+            echo "It is the last week of the month."
+            echo "::set-output name=last_week::true"
+          else
+            echo "It is not the last week of the month."
+            echo "::set-output name=last_week::false"
+          fi
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'  # 指定Python3.x
+  run-script:
+    needs: check-week
+    if: needs.check-week.outputs.last_week == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: |
-        pip install requests beautifulsoup4 openpyxl pandas
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Specify Python3.x
 
-    - name: Run script
-      env:
-        EUSERV_USERNAME: ${{ secrets.EUSERV_USERNAME }}
-        EUSERV_PASSWORD: ${{ secrets.EUSERV_PASSWORD }}
-        TRUECAPTCHA_USERID: ${{ secrets.TRUECAPTCHA_USERID }}
-        TRUECAPTCHA_APIKEY: ${{ secrets.TRUECAPTCHA_APIKEY }}
-        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-        TG_USER_ID: ${{ secrets.TG_USER_ID }}
-        MAILPARSER_DOWNLOAD_URL_ID: ${{ secrets.MAILPARSER_DOWNLOAD_URL_ID }}
-      run: python Github_Action.py
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 openpyxl pandas
+
+      - name: Run script
+        env:
+          EUSERV_USERNAME: ${{ secrets.EUSERV_USERNAME }}
+          EUSERV_PASSWORD: ${{ secrets.EUSERV_PASSWORD }}
+          TRUECAPTCHA_USERID: ${{ secrets.TRUECAPTCHA_USERID }}
+          TRUECAPTCHA_APIKEY: ${{ secrets.TRUECAPTCHA_APIKEY }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_USER_ID: ${{ secrets.TG_USER_ID }}
+          MAILPARSER_DOWNLOAD_URL_ID: ${{ secrets.MAILPARSER_DOWNLOAD_URL_ID }}
+        run: python Github_Action.py
