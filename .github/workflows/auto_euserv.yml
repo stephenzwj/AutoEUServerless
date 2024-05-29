@@ -40,9 +40,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 openpyxl pandas
+          pip install beautifulsoup4==4.12.3 openpyxl==3.1.2 pandas==2.2.2
 
       - name: Run script
+        if: needs.check-week.outputs.last_week == 'true'
         env:
           EUSERV_USERNAME: ${{ secrets.EUSERV_USERNAME }}
           EUSERV_PASSWORD: ${{ secrets.EUSERV_PASSWORD }}
