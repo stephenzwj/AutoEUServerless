@@ -223,7 +223,7 @@ def login(username: str, password: str) -> (str, requests.session):
     f = session.post(url, headers=headers, data=login_data)
     f.raise_for_status()
 
-    if "Hello" not in f.text and "Confirm or change your customer data here" not in f.text:
+    if False:#"Hello" not in f.text and "Confirm or change your customer data here" not in f.text:
         if "To finish the login process please solve the following captcha." not in f.text:
             return "-1", session
         else:
