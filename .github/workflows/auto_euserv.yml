@@ -30,7 +30,7 @@ jobs:
 
   run-script:
     needs: check-week
-    if: needs.check-week.outputs.last_week == 'true'
+    if: needs.check-week.outputs.last_week == 'false'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
