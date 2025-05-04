@@ -1,26 +1,104 @@
+# Workflow name
 name: Github Action with a cronjob trigger
+
+# Controls when the workflow will run
 on:
+  # Triggers the workflow every day at midnight UTC
   schedule:
     - cron: "0 0 * * *"
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  # This job performs the main tasks of your workflow
   main-job:
     name: Main Job
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # The type of runner that the job will run on
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-      # - step1
-      # - step 2
-      # - Step N
+
+      # --- Add your main job steps below ---
+      # Example placeholder steps:
+      # - name: Step 1 - Run a script
+      #   run: echo "Running step 1..."
+      # - name: Step 2 - Build project
+      #   run: echo "Running step 2..."
+      # - name: Step N - Deploy
+      #   run: echo "Running step N..."
+      # --- End of main job steps ---
+
+  # This job runs after 'main-job' to keep the workflow active by committing a change
   keepalive-job:
-    name: Keepalive Workflow
-    if: ${{ always() }}
+    name: Keepalive Commit
+    # This job needs the 'main-job' to complete before it runs.
     needs: main-job
+    # Use always() to ensure this job runs even if 'main-job' fails.
+    # If you only want this to run on success of 'main-job', remove the 'if' condition.
+    if: ${{ always() }}
     runs-on: ubuntu-latest
+    # Permissions needed to commit back to the repository
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: gautamkrishnar/keepalive-workflow@v2
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          use_api: false
+          # Use the GITHUB_TOKEN for authentication
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 2: Modify README.md and commit the changes
+      - name: Modify README and Commit
+        run: |
+          # Configure git user identity for the commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get the current timestamp in UTC format
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Current Timestamp: $TIMESTAMP"
+
+          # Define the file to modify
+          TARGET_FILE="README.md"
+          COMMIT_MESSAGE="chore: update $TARGET_FILE for workflow activity ($TIMESTAMP)"
+          ACTIVITY_LINE="Workflow last run: $TIMESTAMP"
+
+          # Check if the target file exists
+          if [[ ! -f "$TARGET_FILE" ]]; then
+            echo "$TARGET_FILE does not exist. Creating it."
+            touch "$TARGET_FILE"
+          fi
+
+          # Modify the target file
+          # 1. Remove the last line (handles empty or single-line files gracefully)
+          # Create a temporary file; '|| true' prevents script exit if head fails on empty file
+          head -n -1 "$TARGET_FILE" > "$TARGET_FILE.tmp" || true
+          mv "$TARGET_FILE.tmp" "$TARGET_FILE"
+
+          # 2. Append the new activity line
+          echo "$ACTIVITY_LINE" >> "$TARGET_FILE"
+          echo "Appended line: $ACTIVITY_LINE"
+
+          # Check if there are changes staged for commit
+          # 'git diff --quiet' exits with 1 if there are changes, 0 otherwise.
+          if ! git diff --quiet "$TARGET_FILE"; then
+            echo "Changes detected in $TARGET_FILE. Committing..."
+            # Add the modified file to staging
+            git add "$TARGET_FILE"
+            # Commit the changes
+            git commit -m "$COMMIT_MESSAGE"
+            # Push the changes back to the repository
+            # github.ref points to the branch or tag ref that triggered the workflow
+            # For scheduled workflows, this is typically the default branch (e.g., refs/heads/main)
+            git push origin HEAD:${{ github.ref }}
+            echo "Changes pushed successfully."
+          else
+            # This might happen if the timestamp hasn't changed enough since the last run
+            # or if the file operations didn't result in a net change.
+            echo "No changes detected in $TARGET_FILE. No commit needed."
+          fi
+        env:
+          # The GITHUB_TOKEN is automatically available to the workflow
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
